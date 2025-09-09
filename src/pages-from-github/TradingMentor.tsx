@@ -2,7 +2,7 @@ import React from 'react';
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Brain, TrendingUp, MessageCircle, BarChart3, Calendar, Target } from 'lucide-react';
-import TradingMentorChat from '@/components/TradingMentorChat';
+import TradingMentorChat from '@/components-from-github/TradingMentorChat';
 
 const TradingMentor: React.FC = () => {
   return (

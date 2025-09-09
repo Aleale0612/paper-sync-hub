@@ -7,10 +7,10 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts-from-github/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Calculator, DollarSign, TrendingUp } from "lucide-react";
-import TradingViewWidget from "@/components/TradingViewWidget";
+import TradingViewWidget from "@/components-from-github/TradingViewWidget";
 
 const AddTrade = () => {
   const navigate = useNavigate();

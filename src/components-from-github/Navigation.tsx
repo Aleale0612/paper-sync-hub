@@ -1,8 +1,8 @@
 import { Link, useLocation } from "react-router-dom";
 import { Plus, History, TrendingUp, LogOut, Brain } from "lucide-react";
 import { cn } from "@/lib/utils";
-import { ThemeToggle } from "@/components/ThemeToggle";
-import { useAuth } from "@/contexts/AuthContext";
+import { ThemeToggle } from "@/components-from-github/ThemeToggle";
+import { useAuth } from "@/contexts-from-github/AuthContext";
 import { Button } from "@/components/ui/button";
 
 export const Navigation = () => {

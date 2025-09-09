@@ -23,11 +23,11 @@ import {
   AlertDialogTrigger,
 } from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
-import { useAuth } from "@/contexts/AuthContext";
+import { useAuth } from "@/contexts-from-github/AuthContext";
 import { useToast } from "@/hooks/use-toast";
 import { Edit2, Trash2, Search, TrendingUp, TrendingDown, Eye } from "lucide-react";
 import { format } from "date-fns";
-import EditTradeDialog from "@/components/EditTradeDialog";
+import EditTradeDialog from "@/components-from-github/EditTradeDialog";
 import {
   Dialog,
   DialogContent,
