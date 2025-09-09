@@ -20,7 +20,7 @@ export const TradingMentorChat = () => {
   const [messages, setMessages] = useState<Message[]>([
     {
       id: "1",
-      content: "Hello! I'm your AI Trading Mentor. I can help you analyze your trading performance, provide market insights, and answer questions about trading strategies. How can I assist you today?",
+      content: "Hello! I'm JournalPapersAI, your intelligent trading companion. I can help you analyze your trading performance, provide market insights, and answer questions about trading strategies. How can I assist you today?",
       isBot: true,
       timestamp: new Date(),
     },
@@ -76,9 +76,9 @@ export const TradingMentorChat = () => {
   };
 
   return (
-    <div className="h-[600px] flex flex-col">
-      <ScrollArea className="flex-1 p-4 border rounded-lg mb-4">
-        <div className="space-y-4">
+    <div className="h-full flex flex-col">
+      <ScrollArea className="flex-1 mb-4">
+        <div className="space-y-4 p-4">
           {messages.map((message) => (
             <div
               key={message.id}
@@ -135,7 +135,7 @@ export const TradingMentorChat = () => {
           value={inputMessage}
           onChange={(e) => setInputMessage(e.target.value)}
           onKeyPress={handleKeyPress}
-          placeholder="Ask your trading mentor anything..."
+          placeholder="Ask JournalPapersAI anything..."
           disabled={isLoading}
         />
         <Button onClick={sendMessage} disabled={isLoading || !inputMessage.trim()}>
