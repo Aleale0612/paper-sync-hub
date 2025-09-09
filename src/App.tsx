@@ -14,7 +14,7 @@ import JournalAuth from "./pages/journal/Auth";
 import AddTrade from "./pages/journal/AddTrade";
 import TradeHistory from "./pages/journal/TradeHistory";
 import Analytics from "./pages/journal/Analytics";
-import TradingMentor from "./pages/journal/TradingMentor";
+import JournalPapersAI from "./pages/journal/JournalPapersAI";
 
 const queryClient = new QueryClient();
 
@@ -59,7 +59,7 @@ const App = () => (
                 <ProtectedRoute>
                   <Navigation />
                   <main className="container mx-auto px-4 py-8">
-                    <TradingMentor />
+                    <JournalPapersAI />
                   </main>
                 </ProtectedRoute>
               } />

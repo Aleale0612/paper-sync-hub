@@ -1,1 +1,4 @@
 project_id = "hzezvtdkmhhtswqldrfw"
+
+[functions.journalpapers-ai-chat]
+verify_jwt = true
