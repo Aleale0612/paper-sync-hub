@@ -84,12 +84,12 @@ const JournalPapersAI = () => {
   return (
     <div className="flex h-screen bg-background -mt-8 -mx-4">
       {/* Sidebar */}
-      <div className="w-80 border-r border-border flex flex-col">
+      <div className="w-72 border-r border-border flex flex-col">
         {/* Header */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3 mb-4">
-            <Brain className="h-8 w-8 text-primary" />
-            <h1 className="text-2xl font-bold">JournalPapersAI</h1>
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center gap-2 mb-3">
+            <Brain className="h-6 w-6 text-primary" />
+            <h1 className="text-lg font-bold">JournalPapersAI</h1>
           </div>
           <Button 
             onClick={handleNewChat}
@@ -103,25 +103,25 @@ const JournalPapersAI = () => {
 
         {/* Chat History */}
         <div className="flex-1 overflow-hidden flex flex-col">
-          <div className="p-4">
-            <div className="flex items-center justify-between mb-3">
+          <div className="p-3">
+            <div className="flex items-center justify-between mb-2">
               <h3 className="font-semibold text-sm">Chat History</h3>
               <Button
                 variant="ghost"
                 size="sm"
                 onClick={handleClearHistory}
-                className="text-muted-foreground hover:text-destructive"
+                className="text-muted-foreground hover:text-destructive p-1 h-auto"
               >
-                <Trash2 className="h-4 w-4" />
+                <Trash2 className="h-3 w-3" />
               </Button>
             </div>
             
-            <ScrollArea className="h-[200px]">
-              <div className="space-y-2">
+            <ScrollArea className="h-[160px]">
+              <div className="space-y-1">
                 {chatSessions.map((chat) => (
                   <div
                     key={chat.id}
-                    className={`p-3 rounded-lg cursor-pointer transition-colors relative group ${
+                    className={`p-2 rounded-md cursor-pointer transition-colors relative group ${
                       currentSession === chat.id 
                         ? "bg-primary/10 border border-primary/20" 
                         : "hover:bg-muted"
@@ -129,10 +129,10 @@ const JournalPapersAI = () => {
                     onClick={() => setCurrentSession(chat.id)}
                   >
                     <div className="flex items-start gap-2">
-                      <MessageSquare className="h-4 w-4 mt-0.5 text-muted-foreground flex-shrink-0" />
+                      <MessageSquare className="h-3 w-3 mt-0.5 text-muted-foreground flex-shrink-0" />
                       <div className="flex-1 min-w-0">
-                        <p className="font-medium text-sm truncate">{chat.title}</p>
-                        <p className="text-xs text-muted-foreground mt-1">
+                        <p className="font-medium text-xs truncate">{chat.title}</p>
+                        <p className="text-xs text-muted-foreground">
                           {formatDate(chat.updated_at)}
                         </p>
                       </div>
@@ -154,17 +154,17 @@ const JournalPapersAI = () => {
           <Separator />
 
           {/* Trade History Review */}
-          <div className="p-4">
-            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <History className="h-4 w-4" />
+          <div className="p-3">
+            <h3 className="font-semibold text-sm mb-2 flex items-center gap-1">
+              <History className="h-3 w-3" />
               Recent Trades
             </h3>
             
             {loadingTrades ? (
-              <div className="text-sm text-muted-foreground">Loading trades...</div>
+              <div className="text-xs text-muted-foreground">Loading...</div>
             ) : recentTrades.length > 0 ? (
-              <div className="space-y-2 mb-4">
-                {recentTrades.slice(0, 3).map((trade) => (
+              <div className="space-y-1 mb-3">
+                {recentTrades.slice(0, 2).map((trade) => (
                   <Card key={trade.id} className="p-2">
                     <div className="flex justify-between items-center">
                       <div>
@@ -181,13 +181,13 @@ const JournalPapersAI = () => {
                 ))}
               </div>
             ) : (
-              <p className="text-xs text-muted-foreground mb-4">No trades recorded yet</p>
+              <p className="text-xs text-muted-foreground mb-3">No trades yet</p>
             )}
             
-            <Button variant="outline" size="sm" className="w-full" asChild>
+            <Button variant="outline" size="sm" className="w-full text-xs" asChild>
               <a href="/journal/history">
-                <History className="h-4 w-4 mr-2" />
-                View All Trades
+                <History className="h-3 w-3 mr-1" />
+                View All
               </a>
             </Button>
           </div>
@@ -195,22 +195,22 @@ const JournalPapersAI = () => {
           <Separator />
 
           {/* Analytics Dashboard */}
-          <div className="p-4">
-            <h3 className="font-semibold text-sm mb-3 flex items-center gap-2">
-              <BarChart3 className="h-4 w-4" />
-              Quick Analytics
+          <div className="p-3">
+            <h3 className="font-semibold text-sm mb-2 flex items-center gap-1">
+              <BarChart3 className="h-3 w-3" />
+              Analytics
             </h3>
             
             {analyticsLoading ? (
-              <div className="text-sm text-muted-foreground">Loading analytics...</div>
+              <div className="text-xs text-muted-foreground">Loading...</div>
             ) : (
-              <div className="space-y-3">
+              <div className="space-y-2">
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <Target className="h-3 w-3" />
-                    Total Trades
+                    Trades
                   </span>
-                  <Badge variant="secondary">{analytics.totalTrades}</Badge>
+                  <Badge variant="secondary" className="text-xs">{analytics.totalTrades}</Badge>
                 </div>
                 
                 <div className="flex justify-between items-center">
@@ -218,13 +218,13 @@ const JournalPapersAI = () => {
                     <Percent className="h-3 w-3" />
                     Win Rate
                   </span>
-                  <Badge variant="secondary">{analytics.winRate.toFixed(1)}%</Badge>
+                  <Badge variant="secondary" className="text-xs">{analytics.winRate.toFixed(1)}%</Badge>
                 </div>
                 
                 <div className="flex justify-between items-center">
                   <span className="text-xs text-muted-foreground flex items-center gap-1">
                     <DollarSign className="h-3 w-3" />
-                    Total P&L
+                    P&L
                   </span>
                   <span className={`text-xs font-medium ${
                     analytics.totalPnL >= 0 ? "text-green-600" : "text-red-600"
@@ -232,21 +232,13 @@ const JournalPapersAI = () => {
                     {analytics.totalPnL >= 0 ? '+' : ''}{formatCurrency(analytics.totalPnL)}
                   </span>
                 </div>
-                
-                <div className="flex justify-between items-center">
-                  <span className="text-xs text-muted-foreground flex items-center gap-1">
-                    <TrendingUp className="h-3 w-3" />
-                    Avg R:R
-                  </span>
-                  <Badge variant="outline">1:{analytics.avgRiskReward.toFixed(1)}</Badge>
-                </div>
               </div>
             )}
             
-            <Button variant="outline" size="sm" className="w-full mt-3" asChild>
+            <Button variant="outline" size="sm" className="w-full mt-2 text-xs" asChild>
               <a href="/journal/analytics">
-                <BarChart3 className="h-4 w-4 mr-2" />
-                Full Analytics
+                <BarChart3 className="h-3 w-3 mr-1" />
+                Full View
               </a>
             </Button>
           </div>
@@ -256,20 +248,20 @@ const JournalPapersAI = () => {
       {/* Main Chat Area */}
       <div className="flex-1 flex flex-col">
         {/* Chat Header */}
-        <div className="p-6 border-b border-border">
-          <div className="flex items-center gap-3">
-            <Brain className="h-6 w-6 text-primary" />
+        <div className="p-4 border-b border-border">
+          <div className="flex items-center gap-2">
+            <Brain className="h-5 w-5 text-primary" />
             <div>
-              <h2 className="text-xl font-semibold">JournalPapersAI Chat</h2>
+              <h2 className="text-lg font-semibold">JournalPapersAI Chat</h2>
               <p className="text-sm text-muted-foreground">
-                Your AI trading mentor for market analysis and performance insights
+                Your AI trading mentor for analysis and insights
               </p>
             </div>
           </div>
         </div>
 
         {/* Chat Content */}
-        <div className="flex-1 p-6 overflow-hidden">
+        <div className="flex-1 p-4 overflow-hidden">
           <JournalPapersAIChat sessionId={currentSession} />
         </div>
       </div>
