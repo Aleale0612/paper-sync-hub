@@ -58,9 +58,16 @@ const App = () => (
               <Route path="/journal/mentor" element={
                 <ProtectedRoute>
                   <Navigation />
-                  <main className="container mx-auto px-4 py-8">
-                    <JournalPapersAI />
-                  </main>
+                  <div className="flex flex-col min-h-screen">
+                    <main className="flex-1">
+                      <JournalPapersAI />
+                    </main>
+                    <footer className="bg-muted/30 border-t p-4">
+                      <div className="text-center text-sm text-muted-foreground">
+                        © 2024 JournalPapersAI - Trading Journal & Analytics
+                      </div>
+                    </footer>
+                  </div>
                 </ProtectedRoute>
               } />
               
