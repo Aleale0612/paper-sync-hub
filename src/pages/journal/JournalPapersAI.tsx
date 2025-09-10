@@ -82,7 +82,7 @@ const JournalPapersAI = () => {
   };
 
   return (
-    <div className="flex h-[calc(100vh-8rem)] bg-background">
+    <div className="flex h-full bg-background">
       {/* Sidebar */}
       <div className="w-72 border-r border-border flex flex-col">
         {/* Header */}
