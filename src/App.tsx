@@ -58,7 +58,7 @@ const App = () => (
               <Route path="/journal/mentor" element={
                 <ProtectedRoute>
                   <Navigation />
-                  <main className="container mx-auto px-4 py-8">
+                  <main>
                     <JournalPapersAI />
                   </main>
                 </ProtectedRoute>
