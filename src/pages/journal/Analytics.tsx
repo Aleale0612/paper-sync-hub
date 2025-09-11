@@ -1,132 +1,19 @@
-// This file was migrated from the journalpapers repository
-// Original path: src/pages/Analytics.tsx
-
-import { useState, useEffect } from "react";
+import { useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
-import { TrendingUp, TrendingDown, Target, Calendar } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
-import { supabase } from "@/integrations/supabase/client";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell, LineChart, Line } from "recharts";
-
-interface Trade {
-  id: string;
-  pair: string;
-  direction: "buy" | "sell";
-  lot_size: number;
-  entry_price: number;
-  exit_price: number;
-  result_usd: number;
-  pnl_percent: number;
-  created_at: string;
-}
-
-interface AnalyticsData {
-  totalPnL: number;
-  winRate: number;
-  totalTrades: number;
-  averageWin: number;
-  averageLoss: number;
-  profitFactor: number;
-  bestTrade: number;
-  worstTrade: number;
-  consecutiveWins: number;
-  consecutiveLosses: number;
-}
+import { Button } from "@/components/ui/button";
+import { TrendingUp, TrendingDown, Target, Calendar, BarChart3, RefreshCw, Award, AlertTriangle } from "lucide-react";
+import { useTradeData } from "@/hooks/useTradeData";
+import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 
 const Analytics = () => {
-  const [trades, setTrades] = useState<Trade[]>([]);
-  const [analytics, setAnalytics] = useState<AnalyticsData | null>(null);
-  const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
+  const { trades, analytics, loading, refreshData } = useTradeData();
 
   useEffect(() => {
-    fetchTrades();
-  }, []);
-
-  const fetchTrades = async () => {
-    try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to view analytics",
-          variant: "destructive",
-        });
-        return;
-      }
-
-      const { data, error } = await supabase
-        .from("trades")
-        .select("*")
-        .eq("user_id", user.id)
-        .order("created_at", { ascending: false });
-
-      if (error) throw error;
-
-      setTrades(data || []);
-      calculateAnalytics(data || []);
-    } catch (error) {
-      console.error("Error fetching trades:", error);
-      toast({
-        title: "Error",
-        description: "Failed to fetch trades",
-        variant: "destructive",
-      });
-    } finally {
-      setLoading(false);
+    if (trades.length === 0 && !loading) {
+      refreshData();
     }
-  };
-
-  const calculateAnalytics = (trades: Trade[]) => {
-    if (trades.length === 0) {
-      setAnalytics(null);
-      return;
-    }
-
-    const winningTrades = trades.filter(t => t.result_usd > 0);
-    const losingTrades = trades.filter(t => t.result_usd < 0);
-    
-    const totalPnL = trades.reduce((sum, t) => sum + t.result_usd, 0);
-    const winRate = (winningTrades.length / trades.length) * 100;
-    const averageWin = winningTrades.length > 0 ? winningTrades.reduce((sum, t) => sum + t.result_usd, 0) / winningTrades.length : 0;
-    const averageLoss = losingTrades.length > 0 ? Math.abs(losingTrades.reduce((sum, t) => sum + t.result_usd, 0) / losingTrades.length) : 0;
-    const profitFactor = averageLoss > 0 ? averageWin / averageLoss : 0;
-    const bestTrade = Math.max(...trades.map(t => t.result_usd));
-    const worstTrade = Math.min(...trades.map(t => t.result_usd));
-
-    // Calculate consecutive wins/losses
-    let maxConsecutiveWins = 0;
-    let maxConsecutiveLosses = 0;
-    let currentWins = 0;
-    let currentLosses = 0;
-
-    trades.forEach(trade => {
-      if (trade.result_usd > 0) {
-        currentWins++;
-        currentLosses = 0;
-        maxConsecutiveWins = Math.max(maxConsecutiveWins, currentWins);
-      } else {
-        currentLosses++;
-        currentWins = 0;
-        maxConsecutiveLosses = Math.max(maxConsecutiveLosses, currentLosses);
-      }
-    });
-
-    setAnalytics({
-      totalPnL,
-      winRate,
-      totalTrades: trades.length,
-      averageWin,
-      averageLoss,
-      profitFactor,
-      bestTrade,
-      worstTrade,
-      consecutiveWins: maxConsecutiveWins,
-      consecutiveLosses: maxConsecutiveLosses,
-    });
-  };
+  }, [trades.length, loading, refreshData]);
 
   // Prepare chart data
   const monthlyData = trades.reduce((acc, trade) => {
@@ -142,238 +29,327 @@ const Analytics = () => {
   const chartData = Object.values(monthlyData).sort((a, b) => new Date(a.month).getTime() - new Date(b.month).getTime());
 
   const directionData = [
-    { name: 'Buy', value: trades.filter(t => t.direction === 'buy').length, color: '#0088FE' },
-    { name: 'Sell', value: trades.filter(t => t.direction === 'sell').length, color: '#00C49F' },
+    { name: 'Buy', value: trades.filter(t => t.direction === 'buy').length, color: 'hsl(var(--primary))' },
+    { name: 'Sell', value: trades.filter(t => t.direction === 'sell').length, color: 'hsl(var(--secondary))' },
   ];
 
   const winLossData = [
-    { name: 'Wins', value: trades.filter(t => t.result_usd > 0).length, color: '#22c55e' },
-    { name: 'Losses', value: trades.filter(t => t.result_usd <= 0).length, color: '#ef4444' },
+    { name: 'Wins', value: trades.filter(t => t.result_usd > 0).length, color: 'hsl(142 76% 36%)' },
+    { name: 'Losses', value: trades.filter(t => t.result_usd <= 0).length, color: 'hsl(var(--destructive))' },
   ];
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
-        <div className="text-lg">Loading analytics...</div>
+      <div className="flex items-center justify-center min-h-[60vh]">
+        <div className="flex flex-col items-center space-y-4">
+          <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+          <p className="text-muted-foreground">Loading your trading analytics...</p>
+        </div>
       </div>
     );
   }
 
   if (!analytics) {
     return (
-      <div className="text-center py-8">
-        <p className="text-muted-foreground">No data available. Start by adding some trades!</p>
+      <div className="flex flex-col items-center justify-center min-h-[60vh] space-y-6">
+        <div className="text-center space-y-4">
+          <BarChart3 className="h-16 w-16 text-muted-foreground mx-auto" />
+          <div className="space-y-2">
+            <h3 className="text-xl font-semibold">No Trading Data</h3>
+            <p className="text-muted-foreground max-w-md">
+              Start building your trading analytics by adding your first trade. 
+              Track your performance and improve your trading strategy.
+            </p>
+          </div>
+          <Button onClick={refreshData} className="mt-4">
+            <RefreshCw className="h-4 w-4 mr-2" />
+            Refresh Data
+          </Button>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="space-y-6">
-      {/* Key Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
-            {analytics.totalPnL >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-success" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-destructive" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${analytics.totalPnL >= 0 ? "text-success" : "text-destructive"}`}>
-              ${analytics.totalPnL.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-            <Target className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.winRate.toFixed(1)}%</div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Profit Factor</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.profitFactor.toFixed(2)}</div>
-            <p className="text-xs text-muted-foreground">
-              Avg Win / Avg Loss
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
-            <Calendar className="h-4 w-4 text-muted-foreground" />
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{analytics.totalTrades}</div>
-          </CardContent>
-        </Card>
+    <div className="h-full overflow-hidden flex flex-col">
+      {/* Header */}
+      <div className="flex-shrink-0 flex items-center justify-between mb-6">
+        <div className="space-y-1">
+          <h1 className="text-2xl font-bold tracking-tight">Trading Analytics</h1>
+          <p className="text-muted-foreground">Comprehensive overview of your trading performance</p>
+        </div>
+        <Button onClick={refreshData} variant="outline" size="sm" disabled={loading}>
+          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+          Refresh
+        </Button>
       </div>
 
-      {/* Advanced Metrics */}
-      <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Win</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-success">
-              ${analytics.averageWin.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Average Loss</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-destructive">
-              ${analytics.averageLoss.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Best Trade</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-success">
-              ${analytics.bestTrade.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm font-medium">Worst Trade</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-xl font-bold text-destructive">
-              ${analytics.worstTrade.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-      </div>
-
-      {/* Charts */}
-      <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
-        {/* Monthly P&L Chart */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Monthly P&L</CardTitle>
-            <CardDescription>Profit and loss over time</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <BarChart data={chartData}>
-                <CartesianGrid strokeDasharray="3 3" />
-                <XAxis dataKey="month" />
-                <YAxis />
-                <Tooltip 
-                  formatter={(value) => [`$${value}`, 'P&L']}
-                />
-                <Bar 
-                  dataKey="pnl" 
-                  fill="#0088FE"
-                />
-              </BarChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Trade Direction Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Trade Direction</CardTitle>
-            <CardDescription>Distribution of buy vs sell trades</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={directionData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {directionData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Win/Loss Distribution */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Win/Loss Ratio</CardTitle>
-            <CardDescription>Distribution of winning vs losing trades</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <ResponsiveContainer width="100%" height={300}>
-              <PieChart>
-                <Pie
-                  data={winLossData}
-                  cx="50%"
-                  cy="50%"
-                  labelLine={false}
-                  label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
-                  outerRadius={80}
-                  fill="#8884d8"
-                  dataKey="value"
-                >
-                  {winLossData.map((entry, index) => (
-                    <Cell key={`cell-${index}`} fill={entry.color} />
-                  ))}
-                </Pie>
-                <Tooltip />
-              </PieChart>
-            </ResponsiveContainer>
-          </CardContent>
-        </Card>
-
-        {/* Consecutive Wins/Losses */}
-        <Card>
-          <CardHeader>
-            <CardTitle>Streak Analysis</CardTitle>
-            <CardDescription>Maximum consecutive wins and losses</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="space-y-4">
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Max Consecutive Wins</span>
-                <Badge variant="default" className="bg-success">
-                  {analytics.consecutiveWins}
-                </Badge>
+      {/* Scrollable Content */}
+      <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+        {/* Performance Overview */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card className="border-l-4 border-l-primary">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
+              {analytics.totalPnL >= 0 ? (
+                <TrendingUp className="h-4 w-4 text-emerald-600" />
+              ) : (
+                <TrendingDown className="h-4 w-4 text-destructive" />
+              )}
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${analytics.totalPnL >= 0 ? "text-emerald-600" : "text-destructive"}`}>
+                ${analytics.totalPnL.toFixed(2)}
               </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm font-medium">Max Consecutive Losses</span>
-                <Badge variant="destructive">
-                  {analytics.consecutiveLosses}
-                </Badge>
+              <p className="text-xs text-muted-foreground mt-1">
+                {analytics.totalPnL >= 0 ? 'Profit' : 'Loss'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-emerald-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
+              <Target className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analytics.winRate.toFixed(1)}%</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                {analytics.winRate >= 50 ? 'Above average' : 'Below average'}
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-amber-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Profit Factor</CardTitle>
+              <Award className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className={`text-2xl font-bold ${analytics.profitFactor >= 1 ? "text-emerald-600" : "text-destructive"}`}>
+                {analytics.profitFactor.toFixed(2)}
               </div>
-            </div>
-          </CardContent>
-        </Card>
+              <p className="text-xs text-muted-foreground mt-1">
+                Avg Win / Avg Loss
+              </p>
+            </CardContent>
+          </Card>
+
+          <Card className="border-l-4 border-l-blue-500">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
+              <Calendar className="h-4 w-4 text-muted-foreground" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold">{analytics.totalTrades}</div>
+              <p className="text-xs text-muted-foreground mt-1">
+                Executed trades
+              </p>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Detailed Metrics */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
+                Average Win
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-emerald-600">
+                ${analytics.averageWin.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <TrendingDown className="h-4 w-4 mr-2 text-destructive" />
+                Average Loss
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-destructive">
+                ${analytics.averageLoss.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <Award className="h-4 w-4 mr-2 text-emerald-600" />
+                Best Trade
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-emerald-600">
+                ${analytics.bestTrade.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm font-medium flex items-center">
+                <AlertTriangle className="h-4 w-4 mr-2 text-destructive" />
+                Worst Trade
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <div className="text-xl font-bold text-destructive">
+                ${analytics.worstTrade.toFixed(2)}
+              </div>
+            </CardContent>
+          </Card>
+        </div>
+
+        {/* Charts Section */}
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
+          {/* Monthly P&L Chart */}
+          <Card>
+            <CardHeader>
+              <CardTitle className="flex items-center">
+                <BarChart3 className="h-5 w-5 mr-2" />
+                Monthly P&L Performance
+              </CardTitle>
+              <CardDescription>Track your profit and loss trends over time</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <BarChart data={chartData}>
+                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                  <XAxis 
+                    dataKey="month" 
+                    fontSize={12}
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis 
+                    fontSize={12}
+                    tick={{ fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <Tooltip 
+                    formatter={(value) => [`$${value}`, 'P&L']}
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                  <Bar 
+                    dataKey="pnl" 
+                    fill="hsl(var(--primary))"
+                    radius={[4, 4, 0, 0]}
+                  />
+                </BarChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Trade Direction Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Trade Direction Split</CardTitle>
+              <CardDescription>Distribution of buy vs sell positions</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={directionData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {directionData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Win/Loss Distribution */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Win/Loss Distribution</CardTitle>
+              <CardDescription>Performance breakdown of your trades</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <ResponsiveContainer width="100%" height={250}>
+                <PieChart>
+                  <Pie
+                    data={winLossData}
+                    cx="50%"
+                    cy="50%"
+                    labelLine={false}
+                    label={({ name, percent }) => `${name} ${(percent * 100).toFixed(0)}%`}
+                    outerRadius={80}
+                    fill="#8884d8"
+                    dataKey="value"
+                  >
+                    {winLossData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={entry.color} />
+                    ))}
+                  </Pie>
+                  <Tooltip 
+                    contentStyle={{
+                      backgroundColor: 'hsl(var(--popover))',
+                      border: '1px solid hsl(var(--border))',
+                      borderRadius: '6px'
+                    }}
+                  />
+                </PieChart>
+              </ResponsiveContainer>
+            </CardContent>
+          </Card>
+
+          {/* Streak Analysis */}
+          <Card>
+            <CardHeader>
+              <CardTitle>Streak Analysis</CardTitle>
+              <CardDescription>Your longest winning and losing streaks</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <div className="space-y-6">
+                <div className="flex justify-between items-center p-4 bg-emerald-50 dark:bg-emerald-950/20 rounded-lg">
+                  <div className="flex items-center">
+                    <Award className="h-5 w-5 mr-3 text-emerald-600" />
+                    <span className="text-sm font-medium">Max Consecutive Wins</span>
+                  </div>
+                  <Badge variant="outline" className="bg-emerald-100 text-emerald-700 border-emerald-300 dark:bg-emerald-950 dark:text-emerald-400 dark:border-emerald-600">
+                    {analytics.consecutiveWins}
+                  </Badge>
+                </div>
+                <div className="flex justify-between items-center p-4 bg-red-50 dark:bg-red-950/20 rounded-lg">
+                  <div className="flex items-center">
+                    <AlertTriangle className="h-5 w-5 mr-3 text-destructive" />
+                    <span className="text-sm font-medium">Max Consecutive Losses</span>
+                  </div>
+                  <Badge variant="destructive">
+                    {analytics.consecutiveLosses}
+                  </Badge>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        </div>
       </div>
     </div>
   );
