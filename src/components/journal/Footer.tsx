@@ -1,24 +1,12 @@
 "use client";
 
-import { FaInstagram, FaDiscord } from "react-icons/fa";
+import { FaInstagram, FaDiscord, FaTiktok } from "react-icons/fa";
 import { cn } from "@/lib/utils";
-
-// TikTok custom icon
-const TikTokIcon = (props: React.SVGProps<SVGSVGElement>) => (
-  <svg
-    {...props}
-    xmlns="http://www.w3.org/2000/svg"
-    viewBox="0 0 256 256"
-    fill="currentColor"
-  >
-    <path d="M224 88.1v41.9a96.1 96.1 0 0 1-96-96h41.9a54.1 54.1 0 0 0 54.1 54.1zM128 32a96 96 0 1 0 96 96h-32a64 64 0 1 1-64-64V32z"/>
-  </svg>
-);
 
 export const Footer = () => {
   const socials = [
     { name: "Instagram", url: "https://instagram.com/youraccount", icon: FaInstagram },
-    { name: "TikTok", url: "https://tiktok.com/@youraccount", icon: TikTokIcon },
+    { name: "TikTok", url: "https://tiktok.com/@youraccount", icon: FaTiktok },
     { name: "Discord", url: "https://discord.gg/yourinvite", icon: FaDiscord },
   ];
 
@@ -46,3 +34,5 @@ export const Footer = () => {
     </footer>
   );
 };
+
+export default Footer;
