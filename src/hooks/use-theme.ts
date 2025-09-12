@@ -1,2 +1,3 @@
-// Theme hook for the journal components
-export { useTheme } from "@/components/journal/ThemeProvider";
+"use client";
+
+export { useTheme } from "next-themes";
