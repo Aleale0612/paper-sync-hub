@@ -30,29 +30,12 @@ All colors MUST be HSL.
     --accent: 217 30% 94%;
     --accent-foreground: 217 25% 25%;
 
-    --destructive: 0 75% 60%;
-    --destructive-foreground: 0 0% 100%;
+    --destructive: 0 84.2% 60.2%;
+    --destructive-foreground: 210 40% 98%;
 
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
-
-    --border: 217 20% 88%;
-    --input: 217 20% 88%;
-    --ring: 217 91% 35%;
-
-    /* Trading specific colors */
-    --profit: 142 71% 45%;
-    --loss: 0 75% 60%;
-    --trading-dark: 217 32% 17%;
-    --trading-light: 217 91% 35%;
-    
-    /* Gradients */
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 35%), hsl(217 91% 45%));
-    --gradient-success: linear-gradient(135deg, hsl(142 71% 45%), hsl(142 71% 55%));
-    --gradient-card: linear-gradient(135deg, hsl(0 0% 100%), hsl(217 30% 98%));
+    --border: 214.3 31.8% 91.4%;
+    --input: 214.3 31.8% 91.4%;
+    --ring: 222.2 84% 4.9%;
 
     --radius: 0.5rem;
 
@@ -96,14 +79,8 @@ All colors MUST be HSL.
     --accent: 215 28% 17%;
     --accent-foreground: 213 31% 91%;
 
-    --destructive: 0 63% 31%;
-    --destructive-foreground: 213 31% 91%;
-
-    --success: 142 71% 45%;
-    --success-foreground: 0 0% 100%;
-
-    --warning: 38 92% 50%;
-    --warning-foreground: 0 0% 100%;
+    --destructive: 0 62.8% 30.6%;
+    --destructive-foreground: 210 40% 98%;
 
     --border: 215 28% 17%;
     --input: 215 28% 17%;
