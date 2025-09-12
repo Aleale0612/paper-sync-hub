@@ -1,55 +1,76 @@
-// This file was migrated from the journalpapers repository
-// Original path: src/pages/TradeHistory.tsx
-
 import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from "@/components/ui/alert-dialog";
-import { Edit, Trash2, TrendingUp, TrendingDown } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import {
+  Table,
+  TableBody,
+  TableCell,
+  TableHead,
+  TableHeader,
+  TableRow,
+} from "@/components/ui/table";
+import {
+  AlertDialog,
+  AlertDialogAction,
+  AlertDialogCancel,
+  AlertDialogContent,
+  AlertDialogDescription,
+  AlertDialogFooter,
+  AlertDialogHeader,
+  AlertDialogTitle,
+  AlertDialogTrigger,
+} from "@/components/ui/alert-dialog";
 import { supabase } from "@/integrations/supabase/client";
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Edit2, Trash2, Search, TrendingUp, TrendingDown, Eye } from "lucide-react";
 import { format } from "date-fns";
+import EditTradeDialog from "@/components/journal/EditTradeDialog";
+import {
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogHeader,
+  DialogTitle,
+  DialogTrigger,
+} from "@/components/ui/dialog";
 
 interface Trade {
   id: string;
+  created_at: string;
   pair: string;
   direction: "buy" | "sell";
-  lot_size: number;
   entry_price: number;
   exit_price: number;
-  stop_loss?: number;
-  take_profit?: number;
-  notes?: string;
-  emotional_psychology?: string;
+  sl: number | null;
+  tp: number | null;
+  lot_size: number;
   result_usd: number;
+  pnl_idr: number;
   pnl_percent: number;
-  created_at: string;
+  risk_reward: number | null;
+  notes: string | null;
+  emotional_psychology: string | null;
 }
 
 const TradeHistory = () => {
+  const { toast } = useToast();
+  const { user } = useAuth();
   const [trades, setTrades] = useState<Trade[]>([]);
   const [loading, setLoading] = useState(true);
-  const { toast } = useToast();
-
-  useEffect(() => {
-    fetchTrades();
-  }, []);
+  const [searchTerm, setSearchTerm] = useState("");
+  const [editingTrade, setEditingTrade] = useState<Trade | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false);
+  const [selectedNotes, setSelectedNotes] = useState<{notes: string | null, pair: string} | null>(null);
+  const [isNotesDialogOpen, setIsNotesDialogOpen] = useState(false);
 
   const fetchTrades = async () => {
+    if (!user) return;
+    
     try {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to view trades",
-          variant: "destructive",
-        });
-        return;
-      }
-
+      setLoading(true);
       const { data, error } = await supabase
         .from("trades")
         .select("*")
@@ -57,13 +78,12 @@ const TradeHistory = () => {
         .order("created_at", { ascending: false });
 
       if (error) throw error;
-
       setTrades(data || []);
     } catch (error) {
       console.error("Error fetching trades:", error);
       toast({
         title: "Error",
-        description: "Failed to fetch trades",
+        description: "Failed to load trades.",
         variant: "destructive",
       });
     } finally {
@@ -74,32 +94,56 @@ const TradeHistory = () => {
   const deleteTrade = async (id: string) => {
     try {
       const { error } = await supabase.from("trades").delete().eq("id", id);
-
+      
       if (error) throw error;
-
-      setTrades(trades.filter((trade) => trade.id !== id));
+      
+      setTrades(trades.filter(trade => trade.id !== id));
       toast({
-        title: "Success",
-        description: "Trade deleted successfully",
+        title: "Trade Deleted",
+        description: "The trade has been successfully removed.",
       });
     } catch (error) {
       console.error("Error deleting trade:", error);
       toast({
-        title: "Error",
-        description: "Failed to delete trade",
+        title: "Error", 
+        description: "Failed to delete trade.",
         variant: "destructive",
       });
     }
   };
 
-  const totalProfitLoss = trades.reduce((sum, trade) => sum + trade.result_usd, 0);
-  const winningTrades = trades.filter((trade) => trade.result_usd > 0).length;
-  const totalTrades = trades.length;
-  const winRate = totalTrades > 0 ? (winningTrades / totalTrades) * 100 : 0;
+  const formatCurrency = (amount: number) => {
+    return `Rp ${amount.toLocaleString('id-ID')}`;
+  };
+
+  const handleEditTrade = (trade: Trade) => {
+    setEditingTrade(trade);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleTradeUpdated = () => {
+    fetchTrades();
+  };
+
+  const handleViewNotes = (trade: Trade) => {
+    setSelectedNotes({ notes: trade.notes, pair: trade.pair });
+    setIsNotesDialogOpen(true);
+  };
+
+  const filteredTrades = trades.filter(trade => 
+    trade.pair.toLowerCase().includes(searchTerm.toLowerCase()) ||
+    trade.notes?.toLowerCase().includes(searchTerm.toLowerCase())
+  );
+
+  useEffect(() => {
+    if (user) {
+      fetchTrades();
+    }
+  }, [user]);
 
   if (loading) {
     return (
-      <div className="flex items-center justify-center h-64">
+      <div className="flex items-center justify-center min-h-[400px]">
         <div className="text-lg">Loading trades...</div>
       </div>
     );
@@ -107,56 +151,36 @@ const TradeHistory = () => {
 
   return (
     <div className="space-y-6">
-      {/* Summary Cards */}
-      <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
-            {totalProfitLoss >= 0 ? (
-              <TrendingUp className="h-4 w-4 text-success" />
-            ) : (
-              <TrendingDown className="h-4 w-4 text-destructive" />
-            )}
-          </CardHeader>
-          <CardContent>
-            <div className={`text-2xl font-bold ${totalProfitLoss >= 0 ? "text-success" : "text-destructive"}`}>
-              ${totalProfitLoss.toFixed(2)}
-            </div>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{winRate.toFixed(1)}%</div>
-            <p className="text-xs text-muted-foreground">
-              {winningTrades} wins out of {totalTrades} trades
-            </p>
-          </CardContent>
-        </Card>
-
-        <Card>
-          <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
-            <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <div className="text-2xl font-bold">{totalTrades}</div>
-          </CardContent>
-        </Card>
+      <div className="flex justify-between items-center">
+        <div>
+          <h1 className="text-3xl font-bold text-foreground">Trade History</h1>
+          <p className="text-muted-foreground">Track your trading performance</p>
+        </div>
+        
+        <div className="flex items-center space-x-2">
+          <div className="relative">
+            <Search className="absolute left-3 top-3 h-4 w-4 text-muted-foreground" />
+            <Input
+              placeholder="Search trades..."
+              value={searchTerm}
+              onChange={(e) => setSearchTerm(e.target.value)}
+              className="pl-10 w-64"
+            />
+          </div>
+        </div>
       </div>
 
-      {/* Trades Table */}
-      <Card>
+      <Card className="theme-transition shadow-lg border border-border/50">
         <CardHeader>
-          <CardTitle>Trade History</CardTitle>
-          <CardDescription>View and manage your trading history</CardDescription>
+          <CardTitle className="flex items-center">
+            <TrendingUp className="w-5 h-5 mr-2 text-primary" />
+            All Trades ({filteredTrades.length})
+          </CardTitle>
         </CardHeader>
         <CardContent>
-          {trades.length === 0 ? (
+          {filteredTrades.length === 0 ? (
             <div className="text-center py-8">
-              <p className="text-muted-foreground">No trades found. Start by adding your first trade!</p>
+              <p className="text-muted-foreground">No trades found.</p>
             </div>
           ) : (
             <div className="overflow-x-auto">
@@ -166,48 +190,104 @@ const TradeHistory = () => {
                     <TableHead>Date</TableHead>
                     <TableHead>Pair</TableHead>
                     <TableHead>Direction</TableHead>
-                    <TableHead>Lot Size</TableHead>
                     <TableHead>Entry</TableHead>
+                    <TableHead>SL</TableHead>
+                    <TableHead>TP</TableHead>
                     <TableHead>Exit</TableHead>
-                    <TableHead>P&L ($)</TableHead>
-                    <TableHead>P&L (%)</TableHead>
+                    <TableHead>Lot</TableHead>
+                    <TableHead>RR</TableHead>
+                    <TableHead>P&L (IDR)</TableHead>
+                    <TableHead>Psychology</TableHead>
+                    <TableHead>Notes</TableHead>
                     <TableHead>Actions</TableHead>
                   </TableRow>
                 </TableHeader>
                 <TableBody>
-                  {trades.map((trade) => (
+                  {filteredTrades.map((trade) => (
                     <TableRow key={trade.id}>
-                      <TableCell>
+                      <TableCell className="font-medium">
                         {format(new Date(trade.created_at), "MMM dd, yyyy")}
                       </TableCell>
-                      <TableCell>{trade.pair}</TableCell>
+                      <TableCell>
+                        <Badge variant="outline">{trade.pair}</Badge>
+                      </TableCell>
                       <TableCell>
                         <Badge variant={trade.direction === "buy" ? "default" : "secondary"}>
+                          {trade.direction === "buy" ? (
+                            <TrendingUp className="w-3 h-3 mr-1" />
+                          ) : (
+                            <TrendingDown className="w-3 h-3 mr-1" />
+                          )}
                           {trade.direction.toUpperCase()}
                         </Badge>
                       </TableCell>
+                      <TableCell>${trade.entry_price}</TableCell>
+                      <TableCell className="text-loss">${trade.sl || "-"}</TableCell>
+                      <TableCell className="text-success">${trade.tp || "-"}</TableCell>
+                      <TableCell>${trade.exit_price}</TableCell>
                       <TableCell>{trade.lot_size}</TableCell>
-                      <TableCell>${trade.entry_price.toFixed(2)}</TableCell>
-                      <TableCell>${trade.exit_price.toFixed(2)}</TableCell>
-                      <TableCell>
-                        <span className={trade.result_usd >= 0 ? "text-success" : "text-destructive"}>
-                          ${trade.result_usd.toFixed(2)}
-                        </span>
+                      <TableCell className="text-primary">
+                        {trade.risk_reward ? `1:${trade.risk_reward.toFixed(2)}` : "-"}
+                      </TableCell>
+                      <TableCell className={trade.pnl_idr >= 0 ? "text-success" : "text-loss"}>
+                        {formatCurrency(trade.pnl_idr)}
                       </TableCell>
                       <TableCell>
-                        <span className={trade.pnl_percent >= 0 ? "text-success" : "text-destructive"}>
-                          {trade.pnl_percent.toFixed(2)}%
-                        </span>
+                        <Badge variant="outline" className="capitalize">
+                          {trade.emotional_psychology || "-"}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        {trade.notes ? (
+                          <Dialog>
+                            <DialogTrigger asChild>
+                              <Button 
+                                variant="outline" 
+                                size="sm" 
+                                className="theme-transition hover:bg-primary/10"
+                                onClick={() => handleViewNotes(trade)}
+                              >
+                                <Eye className="w-3 h-3 mr-1" />
+                                View
+                              </Button>
+                            </DialogTrigger>
+                            <DialogContent className="max-w-md">
+                              <DialogHeader>
+                                <DialogTitle className="flex items-center">
+                                  <Badge variant="outline" className="mr-2">{trade.pair}</Badge>
+                                  Trade Notes
+                                </DialogTitle>
+                                <DialogDescription>
+                                  {format(new Date(trade.created_at), "MMM dd, yyyy")}
+                                </DialogDescription>
+                              </DialogHeader>
+                              <Card className="shadow-lg border border-border/50">
+                                <CardContent className="pt-6">
+                                  <p className="text-sm leading-relaxed whitespace-pre-wrap">
+                                    {trade.notes}
+                                  </p>
+                                </CardContent>
+                              </Card>
+                            </DialogContent>
+                          </Dialog>
+                        ) : (
+                          <span className="text-muted-foreground">-</span>
+                        )}
                       </TableCell>
                       <TableCell>
                         <div className="flex space-x-2">
-                          <Button variant="outline" size="sm">
-                            <Edit className="h-4 w-4" />
+                          <Button 
+                            variant="outline" 
+                            size="sm" 
+                            className="theme-transition hover:bg-primary/10"
+                            onClick={() => handleEditTrade(trade)}
+                          >
+                            <Edit2 className="w-3 h-3" />
                           </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
-                              <Button variant="outline" size="sm">
-                                <Trash2 className="h-4 w-4" />
+                              <Button variant="outline" size="sm" className="theme-transition hover:bg-destructive/10 hover:text-destructive">
+                                <Trash2 className="w-3 h-3" />
                               </Button>
                             </AlertDialogTrigger>
                             <AlertDialogContent>
@@ -219,7 +299,10 @@ const TradeHistory = () => {
                               </AlertDialogHeader>
                               <AlertDialogFooter>
                                 <AlertDialogCancel>Cancel</AlertDialogCancel>
-                                <AlertDialogAction onClick={() => deleteTrade(trade.id)}>
+                                <AlertDialogAction 
+                                  onClick={() => deleteTrade(trade.id)}
+                                  className="bg-destructive text-destructive-foreground hover:bg-destructive/90"
+                                >
                                   Delete
                                 </AlertDialogAction>
                               </AlertDialogFooter>
@@ -235,6 +318,13 @@ const TradeHistory = () => {
           )}
         </CardContent>
       </Card>
+
+      <EditTradeDialog
+        trade={editingTrade}
+        open={isEditDialogOpen}
+        onOpenChange={setIsEditDialogOpen}
+        onTradeUpdated={handleTradeUpdated}
+      />
     </div>
   );
 };

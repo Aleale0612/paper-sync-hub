@@ -1,105 +1,192 @@
-// This file was migrated from the journalpapers repository
-// Original path: src/pages/AddTrade.tsx
-
-import { useState } from "react";
-import { useForm } from "react-hook-form";
-import { zodResolver } from "@hookform/resolvers/zod";
-import * as z from "zod";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import React, { useState } from "react";
+import { useNavigate } from "react-router-dom";
+import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { Form, FormControl, FormField, FormItem, FormLabel, FormMessage } from "@/components/ui/form";
-import { useToast } from "@/hooks/use-toast";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { supabase } from "@/integrations/supabase/client";
-
-const tradeSchema = z.object({
-  pair: z.string().min(1, "Trading pair is required"),
-  direction: z.enum(["buy", "sell"]),
-  lotSize: z.number().min(0.01, "Lot size must be at least 0.01"),
-  entryPrice: z.number().min(0, "Entry price must be positive"),
-  exitPrice: z.number().min(0, "Exit price must be positive"),
-  stopLoss: z.number().optional(),
-  takeProfit: z.number().optional(),
-  notes: z.string().optional(),
-  emotionalPsychology: z.string().optional(),
-});
-
-type TradeFormData = z.infer<typeof tradeSchema>;
+import { useAuth } from "@/contexts/AuthContext";
+import { useToast } from "@/hooks/use-toast";
+import { Calculator, DollarSign, TrendingUp } from "lucide-react";
+import TradingViewWidget from "@/components/journal/TradingViewWidget";
 
 const AddTrade = () => {
-  const [isSubmitting, setIsSubmitting] = useState(false);
+  const navigate = useNavigate();
   const { toast } = useToast();
-
-  const form = useForm<TradeFormData>({
-    resolver: zodResolver(tradeSchema),
-    defaultValues: {
-      pair: "XAUUSD",
-      direction: "buy",
-      lotSize: 0.01,
-      entryPrice: 0,
-      exitPrice: 0,
-    },
+  const { user } = useAuth();
+  
+  const [formData, setFormData] = useState({
+    pair: "XAUUSD",
+    direction: "buy" as "buy" | "sell",
+    entryPrice: "",
+    exitPrice: "",
+    stopLoss: "",
+    takeProfit: "",
+    lotSize: "",
+    riskPercent: "2",
+    notes: "",
+    emotionalPsychology: "calm",
   });
 
-  const calculatePnL = (direction: "buy" | "sell", entryPrice: number, exitPrice: number, lotSize: number) => {
-    const contractSize = 100; // XAUUSD contract size
-    const pipValue = 1; // For XAUUSD, 1 pip = $1 per 0.01 lot
+  const [calculations, setCalculations] = useState({
+    profitLossIDR: 0,
+    profitLossPercent: 0,
+    riskReward: 0,
+  });
+
+  const calculateResults = () => {
+    const entry = parseFloat(formData.entryPrice);
+    const sl = parseFloat(formData.stopLoss);
+    const tp = parseFloat(formData.takeProfit);
+    const risk = parseFloat(formData.riskPercent);
+    const exit = parseFloat(formData.exitPrice);
+
+    if (!entry || !sl || !tp || !risk) return;
+
+    // XAUUSD contract size is typically 100 oz
+    const contractSize = 100;
+    const pipSize = 0.01;
     
-    let pnlUSD = 0;
-    if (direction === "buy") {
-      pnlUSD = (exitPrice - entryPrice) * lotSize * contractSize;
-    } else {
-      pnlUSD = (entryPrice - exitPrice) * lotSize * contractSize;
+    // Calculate risk in pips
+    const riskPips = Math.abs(entry - sl) / pipSize;
+    
+    // Calculate reward in pips
+    const rewardPips = Math.abs(tp - entry) / pipSize;
+    
+    // Calculate risk reward ratio
+    const riskReward = rewardPips / riskPips;
+    
+    // Calculate lot size based on risk percentage
+    const accountBalance = 10000; // Default account balance in USD
+    const riskAmount = (accountBalance * risk) / 100;
+    const lotSize = riskAmount / (riskPips * pipSize * contractSize);
+    
+    // Update lot size in form
+    setFormData(prev => ({ ...prev, lotSize: lotSize.toFixed(2) }));
+
+    // Calculate PNL IDR if exit price is provided
+    let profitLossIDR = 0;
+    let profitLossPercent = 0;
+    
+    if (exit && entry) {
+      let pnlUSD = 0;
+      if (formData.direction === "buy") {
+        pnlUSD = (exit - entry) * lotSize * contractSize;
+      } else {
+        pnlUSD = (entry - exit) * lotSize * contractSize;
+      }
+      profitLossIDR = pnlUSD * 15500; // Convert to IDR
+      profitLossPercent = (pnlUSD / (entry * lotSize * contractSize)) * 100;
     }
-    
-    const pnlPercent = ((exitPrice - entryPrice) / entryPrice) * 100;
-    return { pnlUSD, pnlPercent: direction === "buy" ? pnlPercent : -pnlPercent };
+
+    setCalculations({
+      profitLossIDR,
+      profitLossPercent,
+      riskReward: riskReward,
+    });
   };
 
-  const onSubmit = async (data: TradeFormData) => {
-    setIsSubmitting(true);
+  const validateInputs = () => {
+    const entry = parseFloat(formData.entryPrice);
+    const sl = parseFloat(formData.stopLoss);
+    const tp = parseFloat(formData.takeProfit);
+
+    if (formData.direction === "buy") {
+      return sl < entry && entry < tp;
+    } else {
+      return tp < entry && entry < sl;
+    }
+  };
+
+  const handleInputChange = (field: string, value: string) => {
+    setFormData(prev => ({ ...prev, [field]: value }));
+  };
+
+  const handleSubmit = async (e: React.FormEvent) => {
+    e.preventDefault();
+    
+    if (!formData.entryPrice || !formData.stopLoss || !formData.takeProfit || !formData.lotSize) {
+      toast({
+        title: "Missing Fields",
+        description: "Please fill in all required fields.",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!validateInputs()) {
+      toast({
+        title: "Invalid Input",
+        description: formData.direction === "buy" 
+          ? "For Buy orders: SL < Entry < TP" 
+          : "For Sell orders: TP < Entry < SL",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
-      const { data: { user } } = await supabase.auth.getUser();
+      // Calculate final PNL for insertion
+      const exitPrice = parseFloat(formData.exitPrice) || parseFloat(formData.takeProfit);
+      const entryPrice = parseFloat(formData.entryPrice);
+      const lotSize = parseFloat(formData.lotSize);
+      const contractSize = 100;
       
-      if (!user) {
-        toast({
-          title: "Error",
-          description: "You must be logged in to add trades",
-          variant: "destructive",
-        });
-        return;
+      let resultUSD = 0;
+      let pnlPercent = 0;
+      let pnlIDR = 0;
+      
+      if (exitPrice && entryPrice && lotSize) {
+        if (formData.direction === "buy") {
+          resultUSD = (exitPrice - entryPrice) * lotSize * contractSize;
+        } else {
+          resultUSD = (entryPrice - exitPrice) * lotSize * contractSize;
+        }
+        pnlIDR = resultUSD * 15500;
+        pnlPercent = (resultUSD / (entryPrice * lotSize * contractSize)) * 100;
       }
 
-      const contractSize = 100;
-      const { pnlUSD, pnlPercent } = calculatePnL(data.direction, data.entryPrice, data.exitPrice, data.lotSize);
-
       const { error } = await supabase.from("trades").insert({
-        pair: data.pair,
-        direction: data.direction,
-        lot_size: data.lotSize,
-        entry_price: data.entryPrice,
-        exit_price: data.exitPrice,
-        stop_loss: data.stopLoss,
-        take_profit: data.takeProfit,
-        notes: data.notes,
-        emotional_psychology: data.emotionalPsychology,
-        result_usd: pnlUSD,
-        pnl_percent: pnlPercent,
+        pair: formData.pair,
+        direction: formData.direction,
+        entry_price: entryPrice,
+        exit_price: exitPrice,
+        sl: parseFloat(formData.stopLoss),
+        tp: parseFloat(formData.takeProfit),
+        lot_size: lotSize,
         contract_size: contractSize,
-        user_id: user.id,
+        result_usd: resultUSD,
+        pnl_idr: pnlIDR,
+        pnl_percent: pnlPercent,
+        risk_reward: calculations.riskReward,
+        risk_percent: parseFloat(formData.riskPercent),
+        notes: formData.notes || null,
+        emotional_psychology: formData.emotionalPsychology,
+        user_id: user?.id,
       });
 
       if (error) throw error;
 
       toast({
-        title: "Success!",
-        description: "Trade added successfully",
+        title: "Trade Added",
+        description: "Your trade has been successfully recorded.",
       });
 
-      form.reset();
+      // Reset form
+      setFormData({
+        pair: "XAUUSD",
+        direction: "buy",
+        entryPrice: "",
+        exitPrice: "",
+        stopLoss: "",
+        takeProfit: "",
+        lotSize: "",
+        riskPercent: "2",
+        notes: "",
+        emotionalPsychology: "calm",
+      });
     } catch (error) {
       console.error("Error adding trade:", error);
       toast({
@@ -107,213 +194,240 @@ const AddTrade = () => {
         description: "Failed to add trade. Please try again.",
         variant: "destructive",
       });
-    } finally {
-      setIsSubmitting(false);
     }
   };
 
+  // Recalculate when key fields change
+  React.useEffect(() => {
+    if (formData.entryPrice && formData.stopLoss && formData.takeProfit && formData.riskPercent) {
+      calculateResults();
+    }
+  }, [formData.entryPrice, formData.exitPrice, formData.stopLoss, formData.takeProfit, formData.riskPercent, formData.direction]);
+
   return (
-    <div className="max-w-2xl mx-auto space-y-6">
-      <Card>
-        <CardHeader>
-          <CardTitle>Add New Trade</CardTitle>
-          <CardDescription>Record your trading activity for analysis</CardDescription>
-        </CardHeader>
-        <CardContent>
-          <Form {...form}>
-            <form onSubmit={form.handleSubmit(onSubmit)} className="space-y-4">
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="pair"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Trading Pair</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select trading pair" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="XAUUSD">XAUUSD (Gold)</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
+    <div className="w-full max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 xl:px-12 space-y-6">
+      <div className="text-center space-y-2">
+        <h1 className="text-2xl font-bold text-foreground">Add New Trade</h1>
+        <p className="text-sm text-muted-foreground">Record your XAUUSD trading performance</p>
+      </div>
 
-                <FormField
-                  control={form.control}
-                  name="direction"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Direction</FormLabel>
-                      <Select onValueChange={field.onChange} defaultValue={field.value}>
-                        <FormControl>
-                          <SelectTrigger>
-                            <SelectValue placeholder="Select direction" />
-                          </SelectTrigger>
-                        </FormControl>
-                        <SelectContent>
-                          <SelectItem value="buy">Buy</SelectItem>
-                          <SelectItem value="sell">Sell</SelectItem>
-                        </SelectContent>
-                      </Select>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+      <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+        {/* Trade Details - Compact Two Column Layout */}
+        <Card className="lg:col-span-2 theme-transition bg-gradient-to-br from-card to-card/50 shadow-lg border border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center text-lg">
+              <DollarSign className="w-5 h-5 mr-2 text-primary" />
+              Trade Details
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {/* First Row - Pair and Direction */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="pair" className="text-sm font-medium">Trading Pair</Label>
+                <Select value={formData.pair} onValueChange={(value) => handleInputChange("pair", value)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="XAUUSD">XAU/USD (Gold)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="direction" className="text-sm font-medium">Direction</Label>
+                <Select value={formData.direction} onValueChange={(value) => handleInputChange("direction", value)}>
+                  <SelectTrigger className="h-9">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="buy">Buy (Long)</SelectItem>
+                    <SelectItem value="sell">Sell (Short)</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+
+            {/* Second Row - Entry and Exit */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="entryPrice" className="text-sm font-medium">Entry Price</Label>
+                <Input
+                  id="entryPrice"
+                  type="number"
+                  step="0.01"
+                  placeholder="2050.00"
+                  value={formData.entryPrice}
+                  onChange={(e) => handleInputChange("entryPrice", e.target.value)}
+                  className="h-9"
                 />
               </div>
-
-              <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                <FormField
-                  control={form.control}
-                  name="lotSize"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Lot Size</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="0.01"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="entryPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Entry Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="2000.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="exitPrice"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Exit Price</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="2010.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || 0)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+              <div className="space-y-2">
+                <Label htmlFor="exitPrice" className="text-sm font-medium">Exit Price (Optional)</Label>
+                <Input
+                  id="exitPrice"
+                  type="number"
+                  step="0.01"
+                  placeholder="2055.00"
+                  value={formData.exitPrice}
+                  onChange={(e) => handleInputChange("exitPrice", e.target.value)}
+                  className="h-9"
                 />
               </div>
+            </div>
 
-              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <FormField
-                  control={form.control}
-                  name="stopLoss"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Stop Loss (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="1990.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
-                />
-
-                <FormField
-                  control={form.control}
-                  name="takeProfit"
-                  render={({ field }) => (
-                    <FormItem>
-                      <FormLabel>Take Profit (Optional)</FormLabel>
-                      <FormControl>
-                        <Input
-                          type="number"
-                          step="0.01"
-                          placeholder="2020.00"
-                          {...field}
-                          onChange={(e) => field.onChange(parseFloat(e.target.value) || undefined)}
-                        />
-                      </FormControl>
-                      <FormMessage />
-                    </FormItem>
-                  )}
+            {/* Third Row - SL and TP */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="stopLoss" className="text-sm font-medium">Stop Loss (SL)</Label>
+                <Input
+                  id="stopLoss"
+                  type="number"
+                  step="0.01"
+                  placeholder="2045.00"
+                  value={formData.stopLoss}
+                  onChange={(e) => handleInputChange("stopLoss", e.target.value)}
+                  className={`h-9 ${!validateInputs() && formData.entryPrice && formData.stopLoss ? "border-destructive" : ""}`}
                 />
               </div>
+              <div className="space-y-2">
+                <Label htmlFor="takeProfit" className="text-sm font-medium">Take Profit (TP)</Label>
+                <Input
+                  id="takeProfit"
+                  type="number"
+                  step="0.01"
+                  placeholder="2055.00"
+                  value={formData.takeProfit}
+                  onChange={(e) => handleInputChange("takeProfit", e.target.value)}
+                  className={`h-9 ${!validateInputs() && formData.entryPrice && formData.takeProfit ? "border-destructive" : ""}`}
+                />
+              </div>
+            </div>
 
-              <FormField
-                control={form.control}
-                name="notes"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Trade Notes (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="Add any notes about this trade..."
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
+            {/* Fourth Row - Lot Size and Risk */}
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+              <div className="space-y-2">
+                <Label htmlFor="lotSize" className="text-sm font-medium">Lot Size (Auto)</Label>
+                <Input
+                  id="lotSize"
+                  type="number"
+                  step="0.01"
+                  placeholder="0.10"
+                  value={formData.lotSize}
+                  readOnly
+                  className="h-9 bg-secondary/20"
+                />
+              </div>
+              <div className="space-y-2">
+                <Label htmlFor="riskPercent" className="text-sm font-medium">Risk %</Label>
+                <Input
+                  id="riskPercent"
+                  type="number"
+                  step="0.1"
+                  placeholder="2.0"
+                  value={formData.riskPercent}
+                  onChange={(e) => handleInputChange("riskPercent", e.target.value)}
+                  className="h-9"
+                />
+              </div>
+            </div>
+
+            {/* Fifth Row - Psychology */}
+            <div className="space-y-2">
+              <Label htmlFor="emotionalPsychology" className="text-sm font-medium">Emotional Psychology</Label>
+              <Select value={formData.emotionalPsychology} onValueChange={(value) => handleInputChange("emotionalPsychology", value)}>
+                <SelectTrigger className="h-9">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="emotional">Emotional</SelectItem>
+                  <SelectItem value="calm">Calm</SelectItem>
+                  <SelectItem value="overconfident">Overconfident</SelectItem>
+                  <SelectItem value="fearful">Fearful</SelectItem>
+                  <SelectItem value="greedy">Greedy</SelectItem>
+                  <SelectItem value="disciplined">Disciplined</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            {/* Notes */}
+            <div className="space-y-2">
+              <Label htmlFor="notes" className="text-sm font-medium">Notes (Optional)</Label>
+              <Textarea
+                id="notes"
+                placeholder="Trade analysis, market conditions, etc..."
+                value={formData.notes}
+                onChange={(e) => handleInputChange("notes", e.target.value)}
+                className="min-h-[60px] resize-none"
               />
+            </div>
+          </CardContent>
+        </Card>
 
-              <FormField
-                control={form.control}
-                name="emotionalPsychology"
-                render={({ field }) => (
-                  <FormItem>
-                    <FormLabel>Emotional Psychology (Optional)</FormLabel>
-                    <FormControl>
-                      <Textarea
-                        placeholder="How did you feel during this trade? What was your mindset?"
-                        className="resize-none"
-                        {...field}
-                      />
-                    </FormControl>
-                    <FormMessage />
-                  </FormItem>
-                )}
-              />
+        {/* Calculated Results - Compact */}
+        <Card className="theme-transition bg-gradient-to-br from-card to-card/50 shadow-lg border border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center text-lg">
+              <Calculator className="w-5 h-5 mr-2 text-success" />
+              Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
+              <span className="text-sm font-medium">Risk Reward</span>
+              <span className="text-sm font-bold text-primary">
+                1:{calculations.riskReward.toFixed(2)}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
+              <span className="text-sm font-medium">Auto Lot</span>
+              <span className="text-sm font-bold text-foreground">
+                {formData.lotSize || "0.00"}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
+              <span className="text-sm font-medium">PNL (IDR)</span>
+              <span className={`text-sm font-bold ${calculations.profitLossIDR >= 0 ? 'text-success' : 'text-loss'}`}>
+                Rp {Math.abs(calculations.profitLossIDR).toLocaleString('id-ID')}
+              </span>
+            </div>
+            
+            <div className="p-2 rounded-lg bg-secondary/20 border border-border/30 theme-transition">
+              <div className="text-xs text-muted-foreground mb-1">Validation:</div>
+              <div className={`text-xs font-medium ${validateInputs() || (!formData.entryPrice || !formData.stopLoss || !formData.takeProfit) ? 'text-success' : 'text-destructive'}`}>
+                {formData.direction === "buy" ? "Buy: SL < Entry < TP" : "Sell: TP < Entry < SL"}
+              </div>
+              {formData.entryPrice && formData.stopLoss && formData.takeProfit && (
+                <div className={`text-xs mt-1 ${validateInputs() ? 'text-success' : 'text-destructive'}`}>
+                  {validateInputs() ? "✓ Valid setup" : "✗ Invalid setup"}
+                </div>
+              )}
+            </div>
 
-              <Button type="submit" className="w-full" disabled={isSubmitting}>
-                {isSubmitting ? "Adding Trade..." : "Add Trade"}
+            <form onSubmit={handleSubmit} className="pt-2">
+              <Button type="submit" size="sm" className="w-full">
+                <TrendingUp className="w-4 h-4 mr-2" />
+                Add Trade
               </Button>
             </form>
-          </Form>
-        </CardContent>
-      </Card>
+          </CardContent>
+        </Card>
+      </div>
+
+     {/* TradingView Chart */}
+<Card className="theme-transition bg-gradient-to-br from-card to-card/50 shadow-lg border border-border/50">
+  <CardHeader className="pb-4">
+    <CardTitle className="flex items-center text-lg">
+      <TrendingUp className="w-5 h-5 mr-2 text-primary" />
+      Live Chart - TradingView
+    </CardTitle>
+  </CardHeader>
+  <CardContent className="p-0 h-[600px]">
+    <TradingViewWidget />
+  </CardContent>
+</Card>
     </div>
   );
 };
