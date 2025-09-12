@@ -12,22 +12,22 @@ export const Navigation = () => {
   const navItems = [
     {
       name: "Add Trade",
-      path: "/add-trade",
+      path: "/journal/add-trade",
       icon: Plus,
     },
     {
       name: "Trade History", 
-      path: "/history",
+      path: "/journal/history",
       icon: History,
     },
     {
       name: "Analytics",
-      path: "/analytics", 
+      path: "/journal/analytics", 
       icon: TrendingUp,
     },
     {
-      name: "Trading Mentor",
-      path: "/mentor",
+      name: "JournalPapersAI",
+      path: "/journal/mentor",
       icon: Brain,
     },
   ];

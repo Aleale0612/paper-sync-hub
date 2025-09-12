@@ -22,7 +22,7 @@ const Auth = () => {
   // Redirect if user is already authenticated
   useEffect(() => {
     if (user) {
-      navigate('/add-trade');
+      navigate('/journal/add-trade');
     }
   }, [user, navigate]);
 
