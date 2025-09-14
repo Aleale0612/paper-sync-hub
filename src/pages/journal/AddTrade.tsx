@@ -28,6 +28,7 @@ const AddTrade = () => {
     riskPercent: "2",
     notes: "",
     emotionalPsychology: "calm",
+    balanceCurrency: "USD",
   });
 
   const [calculations, setCalculations] = useState({
@@ -186,6 +187,7 @@ const AddTrade = () => {
         riskPercent: "2",
         notes: "",
         emotionalPsychology: "calm",
+        balanceCurrency: "USD",
       });
     } catch (error) {
       console.error("Error adding trade:", error);
@@ -373,6 +375,21 @@ const AddTrade = () => {
             </CardTitle>
           </CardHeader>
           <CardContent className="space-y-3">
+            {/* Balance Currency Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="balanceCurrency" className="text-xs font-medium text-muted-foreground">Balance Currency</Label>
+              <Select value={formData.balanceCurrency || "USD"} onValueChange={(value) => handleInputChange("balanceCurrency", value)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IDR">IDR (Indonesian Rupiah)</SelectItem>
+                  <SelectItem value="USD_CENT">USD Cent</SelectItem>
+                  <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
             <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
               <span className="text-sm font-medium">Risk Reward</span>
               <span className="text-sm font-bold text-primary">
@@ -388,9 +405,13 @@ const AddTrade = () => {
             </div>
             
             <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
-              <span className="text-sm font-medium">PNL (IDR)</span>
+              <span className="text-sm font-medium">
+                PNL ({formData.balanceCurrency === "IDR" ? "IDR" : formData.balanceCurrency === "USD_CENT" ? "¢" : "USD"})
+              </span>
               <span className={`text-sm font-bold ${calculations.profitLossIDR >= 0 ? 'text-success' : 'text-loss'}`}>
-                Rp {Math.abs(calculations.profitLossIDR).toLocaleString('id-ID')}
+                {formData.balanceCurrency === "IDR" ? `Rp ${Math.abs(calculations.profitLossIDR).toLocaleString('id-ID')}` :
+                 formData.balanceCurrency === "USD_CENT" ? `${Math.abs(calculations.profitLossIDR / 15500 * 100).toFixed(0)}¢` :
+                 `$${Math.abs(calculations.profitLossIDR / 15500).toFixed(2)}`}
               </span>
             </div>
             
