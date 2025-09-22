@@ -5,12 +5,14 @@ import { ThemeToggle } from "@/components/journal/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
 import { Button } from "@/components/ui/button";
 import { motion } from "framer-motion";
+import { ChartStyle } from "../ui/chart";
 
 export const Navigation = () => {
   const location = useLocation();
   const { signOut } = useAuth();
 
   const navItems = [
+    { name: "Charts", path: "/journal/TradingViewPages", icon: Brain},
     { name: "Add Trade", path: "/journal/add-trade", icon: Plus },
     { name: "Trade History", path: "/journal/history", icon: History },
     { name: "Analytics", path: "/journal/analytics", icon: TrendingUp },

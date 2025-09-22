@@ -15,6 +15,7 @@ import AddTrade from "./pages/journal/AddTrade";
 import TradeHistory from "./pages/journal/TradeHistory";
 import Analytics from "./pages/journal/Analytics";
 import JournalPapersAI from "./pages/journal/JournalPapersAI";
+import TradingViewPage from "./pages/journal/TradingViewPages";
 
 const queryClient = new QueryClient();
 
@@ -61,6 +62,11 @@ const App = () => (
                   <main className="flex-1 overflow-hidden">
                     <JournalPapersAI />
                   </main>
+                </ProtectedRoute>
+              } />
+              <Route path="/journal/TradingViewPages" element={
+                <ProtectedRoute>
+                  <TradingViewPage />
                 </ProtectedRoute>
               } />
               

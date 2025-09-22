@@ -7,7 +7,12 @@ interface AuthContextType {
   user: User | null;
   session: Session | null;
   loading: boolean;
-  signUp: (email: string, password: string, fullName?: string, username?: string) => Promise<{ error: AuthError | null }>;
+  signUp: (
+    email: string,
+    password: string,
+    fullName?: string,
+    username?: string
+  ) => Promise<{ error: AuthError | null }>;
   signIn: (email: string, password: string) => Promise<{ error: AuthError | null }>;
   signOut: () => Promise<void>;
 }
@@ -32,28 +37,35 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Set up auth state listener
+    // Listener untuk auth state
     const { data: { subscription } } = supabase.auth.onAuthStateChange(
-      (event, session) => {
+      (_event, session) => {
         setSession(session);
         setUser(session?.user ?? null);
         setLoading(false);
       }
     );
 
-    // Check for existing session
+    // Cek session aktif saat ini
     supabase.auth.getSession().then(({ data: { session } }) => {
       setSession(session);
       setUser(session?.user ?? null);
       setLoading(false);
     });
 
-    return () => subscription.unsubscribe();
+    return () => {
+      subscription.unsubscribe();
+    };
   }, []);
 
-  const signUp = async (email: string, password: string, fullName?: string, username?: string) => {
+  const signUp = async (
+    email: string,
+    password: string,
+    fullName?: string,
+    username?: string
+  ) => {
     const redirectUrl = `${window.location.origin}/`;
-    
+
     const { error } = await supabase.auth.signUp({
       email,
       password,
@@ -62,10 +74,10 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         data: {
           full_name: fullName,
           username: username,
-        }
-      }
+        },
+      },
     });
-    
+
     if (error) {
       toast({
         variant: "destructive",
@@ -78,7 +90,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: "We've sent you a confirmation link to complete your registration.",
       });
     }
-    
+
     return { error };
   };
 
@@ -87,7 +99,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
       email,
       password,
     });
-    
+
     if (error) {
       toast({
         variant: "destructive",
@@ -95,7 +107,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
         description: error.message,
       });
     }
-    
+
     return { error };
   };
 
@@ -110,7 +122,7 @@ export const AuthProvider: React.FC<AuthProviderProps> = ({ children }) => {
     }
   };
 
-  const value = {
+  const value: AuthContextType = {
     user,
     session,
     loading,

@@ -1,13 +1,45 @@
-import { useEffect } from "react";
+import { useEffect, useRef } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { TrendingUp, TrendingDown, Target, Calendar, BarChart3, RefreshCw, Award, AlertTriangle } from "lucide-react";
+import { Separator } from "@/components/ui/separator";
+import { 
+  TrendingUp, 
+  TrendingDown, 
+  Target, 
+  Calendar, 
+  BarChart3, 
+  RefreshCw, 
+  Award, 
+  AlertTriangle,
+  Download,
+  FileText,
+  Filter,
+  ArrowUpRight,
+  ArrowDownRight
+} from "lucide-react";
 import { useTradeData } from "@/hooks/useTradeData";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
+import { 
+  BarChart, 
+  Bar, 
+  XAxis, 
+  YAxis, 
+  CartesianGrid, 
+  Tooltip, 
+  ResponsiveContainer, 
+  PieChart, 
+  Pie, 
+  Cell,
+  LineChart,
+  Line,
+  Legend
+} from "recharts";
+import html2canvas from "html2canvas";
+import jsPDF from "jspdf";
 
 const Analytics = () => {
   const { trades, analytics, loading, refreshData } = useTradeData();
+  const analyticsRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     if (trades.length === 0 && !loading) {
@@ -37,6 +69,26 @@ const Analytics = () => {
     { name: 'Wins', value: trades.filter(t => t.result_usd > 0).length, color: 'hsl(142 76% 36%)' },
     { name: 'Losses', value: trades.filter(t => t.result_usd <= 0).length, color: 'hsl(var(--destructive))' },
   ];
+
+  // Function to download as PDF
+  const downloadPDF = async () => {
+    if (analyticsRef.current) {
+      const canvas = await html2canvas(analyticsRef.current, {
+        scale: 2,
+        useCORS: true,
+        allowTaint: true
+      });
+      
+      const imgData = canvas.toDataURL('image/png');
+      const pdf = new jsPDF('p', 'mm', 'a4');
+      const imgProps = pdf.getImageProperties(imgData);
+      const pdfWidth = pdf.internal.pageSize.getWidth();
+      const pdfHeight = (imgProps.height * pdfWidth) / imgProps.width;
+      
+      pdf.addImage(imgData, 'PNG', 0, 0, pdfWidth, pdfHeight);
+      pdf.save('trading-analytics.pdf');
+    }
+  };
 
   if (loading) {
     return (
@@ -78,23 +130,29 @@ const Analytics = () => {
           <h1 className="text-2xl font-bold tracking-tight">Trading Analytics</h1>
           <p className="text-muted-foreground">Comprehensive overview of your trading performance</p>
         </div>
-        <Button onClick={refreshData} variant="outline" size="sm" disabled={loading}>
-          <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
-          Refresh
-        </Button>
+        <div className="flex space-x-2">
+          <Button onClick={refreshData} variant="outline" size="sm" disabled={loading}>
+            <RefreshCw className={`h-4 w-4 mr-2 ${loading ? 'animate-spin' : ''}`} />
+            Refresh
+          </Button>
+          <Button onClick={downloadPDF} size="sm">
+            <Download className="h-4 w-4 mr-2" />
+            Export PDF
+          </Button>
+        </div>
       </div>
 
       {/* Scrollable Content */}
-      <div className="flex-1 overflow-y-auto space-y-6 pr-2">
+      <div ref={analyticsRef} className="flex-1 overflow-y-auto space-y-6 pr-2">
         {/* Performance Overview */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card className="border-l-4 border-l-primary">
+          <Card className="border-l-4 border-l-primary shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total P&L</CardTitle>
               {analytics.totalPnL >= 0 ? (
-                <TrendingUp className="h-4 w-4 text-emerald-600" />
+                <ArrowUpRight className="h-4 w-4 text-emerald-600" />
               ) : (
-                <TrendingDown className="h-4 w-4 text-destructive" />
+                <ArrowDownRight className="h-4 w-4 text-destructive" />
               )}
             </CardHeader>
             <CardContent>
@@ -107,7 +165,7 @@ const Analytics = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-emerald-500">
+          <Card className="border-l-4 border-l-emerald-500 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Win Rate</CardTitle>
               <Target className="h-4 w-4 text-muted-foreground" />
@@ -120,7 +178,7 @@ const Analytics = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-amber-500">
+          <Card className="border-l-4 border-l-amber-500 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Profit Factor</CardTitle>
               <Award className="h-4 w-4 text-muted-foreground" />
@@ -135,7 +193,7 @@ const Analytics = () => {
             </CardContent>
           </Card>
 
-          <Card className="border-l-4 border-l-blue-500">
+          <Card className="border-l-4 border-l-blue-500 shadow-sm">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium">Total Trades</CardTitle>
               <Calendar className="h-4 w-4 text-muted-foreground" />
@@ -151,7 +209,7 @@ const Analytics = () => {
 
         {/* Detailed Metrics */}
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4">
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center">
                 <TrendingUp className="h-4 w-4 mr-2 text-emerald-600" />
@@ -165,7 +223,7 @@ const Analytics = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center">
                 <TrendingDown className="h-4 w-4 mr-2 text-destructive" />
@@ -179,7 +237,7 @@ const Analytics = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center">
                 <Award className="h-4 w-4 mr-2 text-emerald-600" />
@@ -193,7 +251,7 @@ const Analytics = () => {
             </CardContent>
           </Card>
 
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader className="pb-2">
               <CardTitle className="text-sm font-medium flex items-center">
                 <AlertTriangle className="h-4 w-4 mr-2 text-destructive" />
@@ -211,7 +269,7 @@ const Analytics = () => {
         {/* Charts Section */}
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-6">
           {/* Monthly P&L Chart */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle className="flex items-center">
                 <BarChart3 className="h-5 w-5 mr-2" />
@@ -251,7 +309,7 @@ const Analytics = () => {
           </Card>
 
           {/* Trade Direction Distribution */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Trade Direction Split</CardTitle>
               <CardDescription>Distribution of buy vs sell positions</CardDescription>
@@ -286,7 +344,7 @@ const Analytics = () => {
           </Card>
 
           {/* Win/Loss Distribution */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Win/Loss Distribution</CardTitle>
               <CardDescription>Performance breakdown of your trades</CardDescription>
@@ -321,7 +379,7 @@ const Analytics = () => {
           </Card>
 
           {/* Streak Analysis */}
-          <Card>
+          <Card className="shadow-sm">
             <CardHeader>
               <CardTitle>Streak Analysis</CardTitle>
               <CardDescription>Your longest winning and losing streaks</CardDescription>
@@ -350,6 +408,56 @@ const Analytics = () => {
             </CardContent>
           </Card>
         </div>
+
+        {/* Additional Analytics Section */}
+        <Card className="shadow-sm">
+          <CardHeader>
+            <CardTitle className="flex items-center">
+              <BarChart3 className="h-5 w-5 mr-2" />
+              Detailed Performance Metrics
+            </CardTitle>
+            <CardDescription>In-depth analysis of your trading performance</CardDescription>
+          </CardHeader>
+          <CardContent>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Risk Management</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Risk/Reward Ratio</span>
+                    <span className="font-medium">{analytics.averageRiskReward ? `1:${analytics.averageRiskReward.toFixed(2)}` : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Max Drawdown</span>
+                    <span className="font-medium">{analytics.maxDrawdown ? `${analytics.maxDrawdown.toFixed(2)}%` : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Recovery Factor</span>
+                    <span className="font-medium">{analytics.recoveryFactor ? analytics.recoveryFactor.toFixed(2) : 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+              
+              <div className="space-y-4">
+                <h3 className="font-medium text-lg">Trade Statistics</h3>
+                <div className="space-y-3">
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Average Trade Duration</span>
+                    <span className="font-medium">{analytics.avgTradeDuration ? `${analytics.avgTradeDuration.toFixed(2)} hours` : 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Most Traded Pair</span>
+                    <span className="font-medium">{analytics.mostTradedPair || 'N/A'}</span>
+                  </div>
+                  <div className="flex justify-between items-center">
+                    <span className="text-sm text-muted-foreground">Most Profitable Pair</span>
+                    <span className="font-medium">{analytics.mostProfitablePair || 'N/A'}</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );

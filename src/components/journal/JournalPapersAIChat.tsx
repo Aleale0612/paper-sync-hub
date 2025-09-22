@@ -2,8 +2,10 @@ import { useState, useEffect, useRef } from "react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { Card } from "@/components/ui/card";
-import { Send, Bot, User } from "lucide-react";
+import { Card, CardContent } from "@/components/ui/card";
+import { Badge } from "@/components/ui/badge";
+import { Separator } from "@/components/ui/separator";
+import { Send, Bot, User, Brain, Sparkles, Loader2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { supabase } from "@/integrations/supabase/client";
 import { useChatHistory, type ChatMessage } from "@/hooks/useChatHistory";
@@ -24,7 +26,7 @@ export const JournalPapersAIChat = ({ sessionId }: JournalPapersAIChatProps) => 
   const welcomeMessage: ChatMessage = {
     id: "welcome",
     session_id: sessionId || "welcome",
-    content: "Hello! I'm JournalPapersAI, your intelligent trading companion. I can help you analyze your trading performance, provide market insights, and answer questions about trading psychology. How can I assist you today?",
+    content: "Hello! I'm JournalPapersAI, powered by GLM-4.5. I'm your intelligent trading companion specializing in trading psychology, brain science, algorithmic psychology, and technical expertise. I can help you analyze your trading performance, provide market insights, and answer questions about trading strategies. How can I assist you today?",
     is_bot: true,
     created_at: new Date().toISOString(),
   };
@@ -149,8 +151,10 @@ export const JournalPapersAIChat = ({ sessionId }: JournalPapersAIChatProps) => 
 
   return (
     <div className="h-full flex flex-col">
-      <ScrollArea className="flex-1 mb-4" ref={scrollAreaRef}>
-        <div className="space-y-4 p-4">
+      
+      {/* Chat Messages */}
+      <ScrollArea className="flex-1" ref={scrollAreaRef}>
+        <div className="p-4 space-y-6">
           {displayMessages.map((message) => (
             <div
               key={message.id}
@@ -163,7 +167,7 @@ export const JournalPapersAIChat = ({ sessionId }: JournalPapersAIChatProps) => 
               >
                 <div
                   className={`w-8 h-8 rounded-full flex items-center justify-center flex-shrink-0 ${
-                    message.is_bot ? "bg-primary mr-2" : "bg-secondary ml-2"
+                    message.is_bot ? "bg-primary mr-3" : "bg-secondary ml-3"
                   }`}
                 >
                   {message.is_bot ? (
@@ -172,15 +176,19 @@ export const JournalPapersAIChat = ({ sessionId }: JournalPapersAIChatProps) => 
                     <User className="w-4 h-4 text-secondary-foreground" />
                   )}
                 </div>
-                <div
-                  className={`p-3 rounded-lg ${
-                    message.is_bot
-                      ? "bg-muted text-foreground"
-                      : "bg-primary text-primary-foreground"
-                  }`}
-                >
-                  <p className="text-sm whitespace-pre-wrap">{message.content}</p>
-                  <p className="text-xs opacity-70 mt-1">
+                <div className="flex flex-col">
+                  <div
+                    className={`p-3 rounded-xl ${
+                      message.is_bot
+                        ? "bg-muted text-foreground rounded-tl-none"
+                        : "bg-primary text-primary-foreground rounded-tr-none"
+                    }`}
+                  >
+                    <p className="text-sm whitespace-pre-wrap">{message.content}</p>
+                  </div>
+                  <p className={`text-xs opacity-70 mt-1 ${
+                    message.is_bot ? "text-left" : "text-right"
+                  }`}>
                     {formatTimestamp(message.created_at)}
                   </p>
                 </div>
@@ -190,10 +198,10 @@ export const JournalPapersAIChat = ({ sessionId }: JournalPapersAIChatProps) => 
           {isLoading && (
             <div className="flex justify-start">
               <div className="flex">
-                <div className="w-8 h-8 rounded-full bg-primary mr-2 flex items-center justify-center">
+                <div className="w-8 h-8 rounded-full bg-primary mr-3 flex items-center justify-center">
                   <Bot className="w-4 h-4 text-primary-foreground" />
                 </div>
-                <div className="p-3 rounded-lg bg-muted">
+                <div className="p-3 rounded-xl bg-muted rounded-tl-none">
                   <div className="flex space-x-1">
                     <div className="w-2 h-2 bg-current rounded-full animate-bounce"></div>
                     <div className="w-2 h-2 bg-current rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
@@ -206,22 +214,42 @@ export const JournalPapersAIChat = ({ sessionId }: JournalPapersAIChatProps) => 
         </div>
       </ScrollArea>
       
-      <div className="flex space-x-2 px-4">
-        <Input
-          value={inputMessage}
-          onChange={(e) => setInputMessage(e.target.value)}
-          onKeyPress={handleKeyPress}
-          placeholder="Ask JournalPapersAI anything about trading psychology, performance analysis..."
-          disabled={isLoading}
-          className="flex-1"
-        />
-        <Button 
-          onClick={sendMessage} 
-          disabled={isLoading || !inputMessage.trim()}
-          size="sm"
-        >
-          <Send className="w-4 h-4" />
-        </Button>
+      {/* Input Area */}
+      <div className="p-4 border-t border-border/50 bg-gradient-to-t from-background to-transparent flex-shrink-0">
+        <Card className="shadow-sm">
+          <CardContent className="p-3">
+            <div className="flex space-x-2">
+              <Input
+                value={inputMessage}
+                onChange={(e) => setInputMessage(e.target.value)}
+                onKeyPress={handleKeyPress}
+                placeholder="Ask JournalPapersAI anything about trading psychology, performance analysis..."
+                disabled={isLoading}
+                className="flex-1"
+              />
+              <Button 
+                onClick={sendMessage} 
+                disabled={isLoading || !inputMessage.trim()}
+                size="sm"
+                className="px-4"
+              >
+                {isLoading ? (
+                  <Loader2 className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Send className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+            <div className="flex justify-between mt-2">
+              <p className="text-xs text-muted-foreground">
+                Press Enter to send, Shift+Enter for new line
+              </p>
+              <Badge variant="outline" className="text-xs">
+                GLM-4.5
+              </Badge>
+            </div>
+          </CardContent>
+        </Card>
       </div>
     </div>
   );
