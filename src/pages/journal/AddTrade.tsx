@@ -37,6 +37,7 @@ const AddTrade = () => {
     riskPercent: "2",
     notes: "",
     emotionalPsychology: "calm",
+<<<<<<< HEAD
     balanceType: "IDR" as "IDR" | "USD_CENT" | "USD",
     session: "",
     strategyTag: "",
@@ -44,6 +45,9 @@ const AddTrade = () => {
     commission: "",
     swap: "",
     screenshotUrl: "",
+=======
+    balanceCurrency: "USD",
+>>>>>>> d1ba3dc62f1cabd1a99e922f36f522b808241caa
   });
 
   const [calculations, setCalculations] = useState({
@@ -271,6 +275,7 @@ const AddTrade = () => {
         riskPercent: "2",
         notes: "",
         emotionalPsychology: "calm",
+<<<<<<< HEAD
         balanceType: "IDR",
         session: "",
         strategyTag: "",
@@ -278,6 +283,9 @@ const AddTrade = () => {
         commission: "",
         swap: "",
         screenshotUrl: "",
+=======
+        balanceCurrency: "USD",
+>>>>>>> d1ba3dc62f1cabd1a99e922f36f522b808241caa
       });
     } catch (error) {
       console.error("Error adding trade:", error);
@@ -579,6 +587,7 @@ const AddTrade = () => {
                       </div>
                     </div>
 
+<<<<<<< HEAD
                     <div className="space-y-3">
                       <div className="flex justify-between items-center">
                         <Label htmlFor="notes" className="text-base font-medium">
@@ -815,6 +824,65 @@ const AddTrade = () => {
                       </div>
                     </div>
                   </div>
+=======
+        {/* Calculated Results - Compact */}
+        <Card className="theme-transition bg-gradient-to-br from-card to-card/50 shadow-lg border border-border/50">
+          <CardHeader className="pb-4">
+            <CardTitle className="flex items-center text-lg">
+              <Calculator className="w-5 h-5 mr-2 text-success" />
+              Results
+            </CardTitle>
+          </CardHeader>
+          <CardContent className="space-y-3">
+            {/* Balance Currency Selection */}
+            <div className="space-y-2">
+              <Label htmlFor="balanceCurrency" className="text-xs font-medium text-muted-foreground">Balance Currency</Label>
+              <Select value={formData.balanceCurrency || "USD"} onValueChange={(value) => handleInputChange("balanceCurrency", value)}>
+                <SelectTrigger className="h-8 text-xs">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="IDR">IDR (Indonesian Rupiah)</SelectItem>
+                  <SelectItem value="USD_CENT">USD Cent</SelectItem>
+                  <SelectItem value="USD">USD (US Dollar)</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
+              <span className="text-sm font-medium">Risk Reward</span>
+              <span className="text-sm font-bold text-primary">
+                1:{calculations.riskReward.toFixed(2)}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
+              <span className="text-sm font-medium">Auto Lot</span>
+              <span className="text-sm font-bold text-foreground">
+                {formData.lotSize || "0.00"}
+              </span>
+            </div>
+            
+            <div className="flex justify-between items-center p-2 rounded-lg bg-secondary/50 border border-border/30 theme-transition">
+              <span className="text-sm font-medium">
+                PNL ({formData.balanceCurrency === "IDR" ? "IDR" : formData.balanceCurrency === "USD_CENT" ? "¢" : "USD"})
+              </span>
+              <span className={`text-sm font-bold ${calculations.profitLossIDR >= 0 ? 'text-success' : 'text-loss'}`}>
+                {formData.balanceCurrency === "IDR" ? `Rp ${Math.abs(calculations.profitLossIDR).toLocaleString('id-ID')}` :
+                 formData.balanceCurrency === "USD_CENT" ? `${Math.abs(calculations.profitLossIDR / 15500 * 100).toFixed(0)}¢` :
+                 `$${Math.abs(calculations.profitLossIDR / 15500).toFixed(2)}`}
+              </span>
+            </div>
+            
+            <div className="p-2 rounded-lg bg-secondary/20 border border-border/30 theme-transition">
+              <div className="text-xs text-muted-foreground mb-1">Validation:</div>
+              <div className={`text-xs font-medium ${validateInputs() || (!formData.entryPrice || !formData.stopLoss || !formData.takeProfit) ? 'text-success' : 'text-destructive'}`}>
+                {formData.direction === "buy" ? "Buy: SL < Entry < TP" : "Sell: TP < Entry < SL"}
+              </div>
+              {formData.entryPrice && formData.stopLoss && formData.takeProfit && (
+                <div className={`text-xs mt-1 ${validateInputs() ? 'text-success' : 'text-destructive'}`}>
+                  {validateInputs() ? "✓ Valid setup" : "✗ Invalid setup"}
+>>>>>>> d1ba3dc62f1cabd1a99e922f36f522b808241caa
                 </div>
               </CardContent>
               <CardFooter className="pt-4 border-t border-border">
