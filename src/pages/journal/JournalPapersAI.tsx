@@ -101,7 +101,7 @@ const JournalPapersAI = () => {
   };
 
   return (
-    <div className="flex h-screen w-full bg-gradient-to-br from-background to-muted/20 overflow-hidden">
+    <div className="flex h-[92.5vh] w-full bg-gradient-to-br from-background to-muted/20 overflow-hidden">
       {/* Toggle Sidebar Button */}
       {!isSidebarOpen && (
         <Button
@@ -148,14 +148,6 @@ const JournalPapersAI = () => {
                 </div>
               </div>
             </div>
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={toggleSidebar}
-              className="h-8 w-8"
-            >
-              <ChevronLeft className="h-4 w-4" />
-            </Button>
           </div>
           <Button
             onClick={handleNewChat}
@@ -168,9 +160,9 @@ const JournalPapersAI = () => {
         </div>
 
         {/* Scrollable Sidebar Content */}
-        <div className="flex-1 overflow-hidden flex flex-col">
+        <div className="flex-1 overflow-auto flex flex-col">
           {/* Chat History */}
-          <div className="p-5 flex-shrink-0">
+          <div className={`p-5 ${chatSessions.length === 0 ? "hidden" : "flex-shrink-0"}`} >
             <div className="flex items-center justify-between mb-4">
               <h3 className="font-semibold text-sm flex items-center gap-2">
                 <MessageSquare className="h-4 w-4 text-primary" />

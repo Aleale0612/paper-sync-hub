@@ -35,6 +35,10 @@ import {
   ExternalLink,
   Calendar,
   Info,
+  Clock,
+  Target,
+  FileText,
+  Brain,
 } from "lucide-react";
 import { format } from "date-fns";
 import EditTradeDialog from "@/components/journal/EditTradeDialog";
@@ -52,6 +56,7 @@ import {
   TabsList,
   TabsTrigger,
 } from "@/components/ui/tabs";
+import { Textarea } from "@/components/ui/textarea";
 
 interface Trade {
   id: string;
@@ -71,13 +76,17 @@ interface Trade {
   notes: string | null;
   emotional_psychology: string | null;
   balance_type: "IDR" | "USD" | "USD_CENT";
-  // New fields
   session: string | null;
   strategy_tag: string | null;
   confidence_level: number | null;
   commission: number | null;
   swap: number | null;
   screenshot_url: string | null;
+  // New fields from enhanced form
+  trade_duration: string | null;
+  market_condition: string | null;
+  trade_reason: string | null;
+  lessons_learned: string | null;
 }
 
 const TradeHistory = () => {
@@ -230,12 +239,25 @@ const TradeHistory = () => {
     return `$${value}`;
   };
 
+  const formatDuration = (duration: string | null) => {
+    if (!duration) return "-";
+    return duration.charAt(0).toUpperCase() + duration.slice(1);
+  };
+
+  const formatMarketCondition = (condition: string | null) => {
+    if (!condition) return "-";
+    return condition.charAt(0).toUpperCase() + condition.slice(1);
+  };
+
   const filteredTrades = trades.filter(
     (trade) =>
       trade.pair.toLowerCase().includes(searchTerm.toLowerCase()) ||
       trade.notes?.toLowerCase().includes(searchTerm.toLowerCase()) ||
       trade.session?.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      trade.strategy_tag?.toLowerCase().includes(searchTerm.toLowerCase())
+      trade.strategy_tag?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trade.trade_reason?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trade.lessons_learned?.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      trade.market_condition?.toLowerCase().includes(searchTerm.toLowerCase())
   );
 
   const handleSelectAll = () => {
@@ -333,8 +355,10 @@ const TradeHistory = () => {
                     <TableHead>RR</TableHead>
                     <TableHead>P&L</TableHead>
                     <TableHead>Balance Type</TableHead>
+                    <TableHead>Duration</TableHead>
                     <TableHead>Session</TableHead>
                     <TableHead>Strategy</TableHead>
+                    <TableHead>Market</TableHead>
                     <TableHead>Confidence</TableHead>
                     <TableHead>Comm/Swap</TableHead>
                     <TableHead>Screenshot</TableHead>
@@ -393,12 +417,22 @@ const TradeHistory = () => {
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
+                          {formatDuration(trade.trade_duration)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
                           {formatSession(trade.session)}
                         </Badge>
                       </TableCell>
                       <TableCell>
                         <Badge variant="outline" className="capitalize">
                           {formatStrategy(trade.strategy_tag)}
+                        </Badge>
+                      </TableCell>
+                      <TableCell>
+                        <Badge variant="outline" className="capitalize">
+                          {formatMarketCondition(trade.market_condition)}
                         </Badge>
                       </TableCell>
                       <TableCell>
@@ -467,7 +501,7 @@ const TradeHistory = () => {
                                 View
                               </Button>
                             </DialogTrigger>
-                            <DialogContent className="max-w-2xl">
+                            <DialogContent className="max-w-3xl max-h-[90vh] overflow-y-auto">
                               <DialogHeader>
                                 <DialogTitle className="flex items-center">
                                   <Badge variant="outline" className="mr-2">
@@ -483,8 +517,9 @@ const TradeHistory = () => {
                                 </DialogDescription>
                               </DialogHeader>
                               <Tabs defaultValue="overview" className="w-full">
-                                <TabsList className="grid w-full grid-cols-3">
+                                <TabsList className="grid w-full grid-cols-4">
                                   <TabsTrigger value="overview">Overview</TabsTrigger>
+                                  <TabsTrigger value="analysis">Analysis</TabsTrigger>
                                   <TabsTrigger value="notes">Notes</TabsTrigger>
                                   <TabsTrigger value="metrics">Metrics</TabsTrigger>
                                 </TabsList>
@@ -521,6 +556,26 @@ const TradeHistory = () => {
                                     <div>
                                       <h4 className="text-sm font-medium text-muted-foreground">Risk/Reward</h4>
                                       <p>{trade.risk_reward ? `1:${trade.risk_reward.toFixed(2)}` : "-"}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-medium text-muted-foreground">Trade Duration</h4>
+                                      <p>{formatDuration(trade.trade_duration)}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-medium text-muted-foreground">Market Condition</h4>
+                                      <p>{formatMarketCondition(trade.market_condition)}</p>
+                                    </div>
+                                  </div>
+                                </TabsContent>
+                                <TabsContent value="analysis" className="space-y-4">
+                                  <div className="grid grid-cols-1 gap-4">
+                                    <div>
+                                      <h4 className="text-sm font-medium text-muted-foreground">Trade Reason</h4>
+                                      <p className="mt-1">{trade.trade_reason || "-"}</p>
+                                    </div>
+                                    <div>
+                                      <h4 className="text-sm font-medium text-muted-foreground">Lessons Learned</h4>
+                                      <p className="mt-1">{trade.lessons_learned || "-"}</p>
                                     </div>
                                   </div>
                                 </TabsContent>
