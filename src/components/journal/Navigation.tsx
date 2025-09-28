@@ -1,5 +1,5 @@
 import { Link, useLocation } from "react-router-dom";
-import { Plus, History, TrendingUp, LogOut, Brain } from "lucide-react";
+import { Plus, History, TrendingUp, LogOut, Brain, ChartScatterIcon } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ThemeToggle } from "@/components/journal/ThemeToggle";
 import { useAuth } from "@/contexts/AuthContext";
@@ -12,10 +12,10 @@ export const Navigation = () => {
   const { signOut } = useAuth();
 
   const navItems = [
-    { name: "Charts", path: "/journal/TradingViewPages", icon: Brain},
+    { name: "Charts", path: "/journal/TradingViewPages", icon: TrendingUp},
     { name: "Add Trade", path: "/journal/add-trade", icon: Plus },
     { name: "Trade History", path: "/journal/history", icon: History },
-    { name: "Analytics", path: "/journal/analytics", icon: TrendingUp },
+    { name: "Analytics", path: "/journal/analytics", icon: ChartScatterIcon },
     { name: "JournalPapersAI", path: "/journal/mentor", icon: Brain },
   ];
 
